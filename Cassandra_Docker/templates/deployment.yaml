@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cassandra-deployment
+  namespace: {{ .Values.cassandra.namespace }}
+  labels:
+    app: cassandra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cassandra
+  template:
+    metadata:
+      labels:
+        app: cassandra
+    spec:
+      initContainers:
+        - name: config-init
+          image: my-cassandra-image:latest
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+          command: 
+           - /bin/sh
+           - -c
+           - |
+             cp /root/config/cassandra-rackdc.properties /tmp/writable/cassandra-rackdc.properties 
+             cp /root/config/mainconfig/cassandra-main.yaml /tmp/writable/cassandra-main.yaml
+             cp /root/config/mainconfig/replacescript/script.sh /tmp/writable/script.sh 
+             cp /root/config/mainconfig/cassandraconfig/cassandra.yaml /tmp/writable/cassandra.yaml 
+             /tmp/writable/script.sh
+             cp /tmp/writable/cassandra-main.yaml /etc/cassandra/cassandra.yaml
+
+          volumeMounts:
+            - name: cassandra-rack-config
+              mountPath: /root/config
+
+            - name: cassandra-main-config
+              mountPath: /root/config/mainconfig
+
+            - name: cassandra-script
+              mountPath: /root/config/mainconfig/replacescript
+
+            - name: cassandra-config
+              mountPath: /root/config/mainconfig/cassandraconfig
+
+            - name: cassandra-config-writeable
+              mountPath: /tmp/writable
+      containers:
+        - name: cassandra
+          image: my-cassandra-image:latest
+          env:
+           - name: CS_PASSWORD
+             valueFrom:
+               secretKeyRef: 
+                name: cassandra-secret # Replace this with actual value if not using Helm
+                key: cs_password
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                - sh
+                - -c
+                - chmod -R +x /tmp/writable/*
+          ports:
+            - containerPort: 9042
+          volumeMounts:
+            - name: change-cassandra-pass-script
+              mountPath: /root/config/mainconfig/changepass
+
+            - name: cassandra-ready-probe-script
+              mountPath: /root/config/mainconfig/readyprobe
+
+            - name: cassandra-config-writeable
+              mountPath: /tmp/writable
+      volumes:
+        - name: cassandra-rack-config
+          configMap:
+            name: cassandra-rackdc-config
+            defaultMode: 0777
+
+        - name: cassandra-main-config
+          configMap:
+            name: cassandra-main-config
+            defaultMode: 0777
+
+        - name: cassandra-script
+          configMap:
+            name: cassandra-script
+            defaultMode: 0777
+
+        - name: cassandra-config
+          configMap:
+            name: cassandra-config
+            defaultMode: 0777
+
+        - name: change-cassandra-pass-script
+          configMap:
+            name: change-cassandra-pass-script
+            defaultMode: 0777
+
+        - name: cassandra-ready-probe-script
+          configMap:
+            name: cassandra-ready-probe-script
+            defaultMode: 0777
+
+        - name: cassandra-config-writeable
+          emptyDir: {}

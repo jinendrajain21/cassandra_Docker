@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cassandra-rackdc-config
+  namespace: {{ .Values.cassandra.namespace }}
+  labels:
+    app: cassandra
+data:
+  cassandra-rackdc.properties: |
+    dc: {{ .Values.cassandra.datacenter_name }}
+    rack: Rack{{ .Values.cassandra.racknum }}

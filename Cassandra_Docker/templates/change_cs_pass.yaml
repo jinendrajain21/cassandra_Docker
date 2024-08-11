@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: change-cassandra-pass-script
+  namespace: {{ .Values.cassandra.namespace }}
+data:
+  change_cassandra_pass.sh: |
+    #!/bin/bash
+
+    CASSANDRA_IP="application_host=$(ip addr show | grep "inet " | awk '{print $2}' | awk -F/ '{print $1}' | tail -n 1); echo $application_host"
+    CASSANDRA_PWD="$CS_PASSWORD"
+    CASSANDRA_PORT={{ .Values.cassandra.cassandra_port }}
+    echo "Changing Cassandra password..."
+    # Add your logic here to change the Cassandra password
+
+    pass_changed=99
+    retry_num=1
+    is_up=0
+    
+    # Check if Cassandra is up and running
+    while [ $is_up -eq 0 ] && [ $retry_num -le 100 ]; do
+        echo "exit" | cqlsh -u cassandra -p cassandra $CASSANDRA_IP $CASSANDRA_PORT
+        res1=$?
+        echo "exit" | cqlsh -u cassandra -p $CASSANDRA_PASS $CASSANDRA_IP $CASSANDRA_PORT
+        res2=$?
+    
+        if [ $res1 -eq 0 ] || [ $res2 -eq 0 ]; then
+            echo "$(date) --- cqlsh is able to connect."
+            is_up=1
+        else
+            echo "$(date) --- cqlsh is NOT able to connect yet. Sleeping for 5 seconds."
+            sleep 5
+        fi
+        retry_num=$((retry_num + 1))
+    done
+    
+    # Modify Cassandra password if necessary
+    if [ $res1 -eq 0 ] && [ $res2 -eq 1 ] && [ $is_up -eq 1 ]; then
+        echo "Modifying Cassandra password"
+        echo "ALTER USER cassandra WITH PASSWORD '$CASSANDRA_PASS';" | cqlsh -u cassandra -p cassandra $CASSANDRA_IP $CASSANDRA_PORT
+    elif [ $res1 -eq 1 ] && [ $res2 -eq 0 ] && [ $is_up -eq 1 ]; then
+        echo "Cassandra password already modified"
+    else
+        exit 1
+    fi

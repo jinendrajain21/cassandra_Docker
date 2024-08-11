@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cassandra-ready-probe-script
+  namespace: {{ .Values.cassandra.namespace }}
+data:
+  ready-probe.sh: |
+    #!/bin/bash
+
+    CASSANDRA_IP="application_host=$(ip addr show | grep "inet " | awk '{print $2}' | awk -F/ '{print $1}' | tail -n 1); echo $application_host"
+    CASSANDRA_PWD=values.yaml
+    CASSANDRA_PORT={{ .Values.cassandra.cassandra_port }}
+
+    echo "Checking Cassandra readiness..."
+    # Add your readiness check logic here, for example:
+    # nc -zv $CASSANDRA_IP $CASSANDRA_PORT

@@ -1,0 +1,39 @@
+cassandra:
+  concurrent_reads: "32"
+  numTokens: "256"
+  data_Dir: "/var/lib/cassandra/data"
+  hinted_handoff_enabled: "true"
+  cassandra_user: "asdc_user"
+  cs_password: "Aa1234"
+  concurrent_writes: "32"
+  cluster_name: "SDC-CS"
+  datacenter_name: "SDC-CS"
+  multithreaded_compaction: "false"
+  cacheDir: "/var/lib/cassandra/saved_caches"
+  log_file: "/var/lib/cassandra/log/system.log"
+  phi_convict_threshold: "8"
+  commitlogDir: "/var/lib/cassandra/commitlog"
+  socket_read_timeout: "20000"
+  socket_connect_timeout: "20000"
+  janusgraph_connection_timeout: "10000"
+  cassandra_port: 9042
+  authenticator: PasswordAuthenticator
+  replication_factor: "1"
+  cassandra_keystore_path: cassandra_keystore_path
+  cassandra_keystore_password: cassandra_keystore_password
+  cassandra_truststore_path: cassandra_truststore_path
+  cassandra_truststore_password: cassandra_truststore_password
+  seeds: "192.168.1.1,192.168.1.2"
+  racknum: "1"
+  namespace: aktest
+  thrift_port: 9160
+  keystore_directory: /etc/cassandra/cs_trust/.keystore
+  truststore_directory: /etc/cassandra/cs_trust/.truststore
+
+
+service:
+  name: cs-service
+  type: ClusterIP
+  port : 8080
+  
+
